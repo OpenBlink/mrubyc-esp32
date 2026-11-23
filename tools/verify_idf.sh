@@ -9,6 +9,7 @@ fi
 python "$IDF_PATH/tools/idf_tools.py" install qemu-xtensa qemu-riscv32
 # export.sh is not compatible with nounset in all IDF versions.
 set +u
+# shellcheck source=/dev/null
 source "$IDF_PATH/export.sh"
 set -u
 

@@ -3,9 +3,9 @@ name: Workflow Lint
 on:
   push:
     branches: [main]
-    paths: [".github/**"]
+    paths: [".github/**", "tools/*.sh"]
   pull_request:
-    paths: [".github/**"]
+    paths: [".github/**", "tools/*.sh"]
   workflow_dispatch:
 
 permissions:
@@ -27,13 +27,19 @@ jobs:
           ACTIONLINT_VERSION: 1.7.12
         run: |
           archive="actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
-          checksums="actionlint_${ACTIONLINT_VERSION}_checksums.txt"
           url="https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}"
           curl -fsSLO "$url/$archive"
-          curl -fsSLO "$url/$checksums"
-          grep -F "$archive" "$checksums" | sha256sum -c -
+          printf '8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8  %s\n' "$archive" | sha256sum -c -
           tar -xzf "$archive" actionlint
           ./actionlint -color
+  shellcheck:
+    runs-on: ubuntu-26.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: shellcheck tools/*.sh
   zizmor:
     runs-on: ubuntu-slim
     steps:
