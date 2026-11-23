@@ -1,5 +1,5 @@
 version: "3.4.1"
-description: "mruby/c virtual machine and GPTimer scheduler for ESP-IDF"
+description: "mruby/c: compact implementation of Ruby for microcontrollers"
 url: "https://github.com/OpenBlink/mrubyc-esp32"
 repository: "https://github.com/OpenBlink/mrubyc-esp32.git"
 documentation: "https://github.com/OpenBlink/mrubyc-esp32#readme"
