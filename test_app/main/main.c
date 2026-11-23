@@ -108,6 +108,7 @@ static void check_runtime_options(void)
   name[sizeof(name) - 1] = '\0';
   mrbc_set_task_name(task, name);
   if (strlen(task->name) != CONFIG_MRUBYC_TASK_NAME_LEN) abort();
+  puts("Running scheduled parity task");
   if (mrbc_run() != 0) abort();
   puts("Runtime options verified");
 

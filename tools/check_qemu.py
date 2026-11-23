@@ -11,7 +11,7 @@ EXPECTED = {
         b"Both mruby/c tasks finished",
     ],
     "parity": [
-        b"Finally number of registers used was", b"Runtime options verified",
+        b"Running scheduled parity task", b"Finally number of registers used was", b"Runtime options verified",
         b"Permanent task bypassed the teardown hook", b"Returned from app_main()",
     ],
     "oom_default": [
