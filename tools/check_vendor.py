@@ -22,7 +22,7 @@ VENDORED = ("src", "hal/esp32", "LICENSE", "LICENSE.unicode")
 
 def differences(expected, actual):
     result = subprocess.run(
-        ["diff", "--recursive", str(expected), str(actual)],
+        ["diff", "--recursive", "--no-dereference", str(expected), str(actual)],
         capture_output=True,
         text=True,
     )
