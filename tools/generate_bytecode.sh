@@ -16,6 +16,17 @@ if [[ -z "$compiler_version" ]] || [[ "$("$mrbc" --version)" != "mruby $compiler
   exit 1
 fi
 
+if "$check"; then
+  shopt -s nullglob
+  for header in "$root"/examples/*/main/*_bytecode.h; do
+    script="${header%/main/*}/$(basename -- "$header" _bytecode.h).rb"
+    if [[ ! -f "$script" ]]; then
+      printf 'Orphaned bytecode header: %s (missing %s)\n' "${header#"$root"/}" "${script#"$root"/}" >&2
+      exit 1
+    fi
+  done
+fi
+
 for script in "$root"/examples/*/*.rb; do
   symbol=$(basename -- "$script" .rb)_bytecode
   header="$(dirname -- "$script")/main/$symbol.h"
