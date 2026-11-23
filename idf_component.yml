@@ -1,0 +1,27 @@
+version: "3.4.1"
+description: "mruby/c: compact implementation of Ruby for microcontrollers"
+url: "https://github.com/OpenBlink/mrubyc-esp32"
+repository: "https://github.com/OpenBlink/mrubyc-esp32.git"
+documentation: "https://github.com/OpenBlink/mrubyc-esp32#readme"
+issues: "https://github.com/OpenBlink/mrubyc-esp32/issues"
+license: "BSD-3-Clause"
+maintainers:
+  - "Yoshihiro Yamashiro <me@xn--uist1idrju3i.jp>"
+tags: [ruby, mruby, scripting, embedded]
+dependencies:
+  idf: ">=5.5"
+files:
+  exclude:
+    - ".github/**/*"
+    - "tools/**/*"
+    - "test_app/**/*"
+    - "dist/**/*"
+    - "**/__pycache__/**/*"
+    - "**/build/**/*"
+    - "**/managed_components/**/*"
+    - "**/sdkconfig"
+    - "**/sdkconfig.old"
+    - "**/dependencies.lock"
+    - "vendor/mrubyc/src/Makefile"
+    - "vendor/mrubyc/src/hal_selector.mk"
+    - "vendor/mrubyc/src/UnicodeData.txt"

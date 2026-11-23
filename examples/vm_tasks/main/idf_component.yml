@@ -1,0 +1,2 @@
+dependencies:
+  openblink/mrubyc-esp32: "^3.4.1"

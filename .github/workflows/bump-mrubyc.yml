@@ -1,0 +1,43 @@
+name: Import upstream mruby/c
+
+on:
+  schedule:
+    - cron: "19 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+
+jobs:
+  bump:
+    if: github.ref_name == github.event.repository.default_branch
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Verify the official asset and example bytecode compatibility before importing
+        id: upstream
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 tools/import_upstream.py
+      - name: Open an update pull request
+        if: steps.upstream.outputs.version != ''
+        uses: peter-evans/create-pull-request@3ffccacd46053766916f087ce41d627c0b8cf2d1 # v8.1.3
+        with:
+          branch: automation/bump-mrubyc
+          add-paths: |
+            vendor/mrubyc
+            idf_component.yml
+          commit-message: Import mruby/c release${{ steps.upstream.outputs.version }}
+          title: Import mruby/c release${{ steps.upstream.outputs.version }}
+          body: |
+            Imports the official upstream release asset after verifying its SHA-256 digest.
+            The mruby compiler and RITE format are unchanged. Review VM defaults and ESP32 HAL/API changes before merging.
