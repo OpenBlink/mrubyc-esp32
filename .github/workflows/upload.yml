@@ -97,12 +97,12 @@ jobs:
             -v "$GITHUB_WORKSPACE:/work/mrubyc-esp32:ro" -w /work/mrubyc-esp32 \
             "$IMAGE" bash tools/smoke_registry.sh "$VERSION"
 
-  release:
+  production:
     runs-on: ubuntu-24.04
     needs: [package, staging-smoke]
     environment: production
     permissions:
-      contents: write
+      contents: read
       id-token: write
       attestations: write
     steps:
@@ -130,12 +130,28 @@ jobs:
         run: |
           python -m pip install -r .github/requirements.txt
           python tools/upload_package.py dist/*.tgz
+
+  release:
+    runs-on: ubuntu-24.04
+    needs: [package, production]
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          artifact-ids: ${{ needs.package.outputs.artifact-id }}
+          path: dist
+          digest-mismatch: error
       - name: Publish the GitHub release
         env:
+          ARCHIVE_SHA256: ${{ needs.package.outputs.archive-sha256 }}
+          GH_REPO: ${{ github.repository }}
           GH_TOKEN: ${{ github.token }}
         run: |
+          archive=(dist/*.tgz)
+          printf '%s  %s\n' "$ARCHIVE_SHA256" "${archive[0]}" | sha256sum --check
           if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
-            gh release upload "$GITHUB_REF_NAME" dist/*.tgz --clobber
+            gh release upload "$GITHUB_REF_NAME" "${archive[@]}" --clobber
           else
-            gh release create "$GITHUB_REF_NAME" dist/*.tgz --verify-tag --generate-notes
+            gh release create "$GITHUB_REF_NAME" "${archive[@]}" --verify-tag --generate-notes
           fi
