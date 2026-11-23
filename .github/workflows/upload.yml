@@ -12,7 +12,33 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  validate:
+    name: Validate production approval policy
+    runs-on: ubuntu-26.04
+    timeout-minutes: 5
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - name: Verify production requires approval and allows release tags
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          endpoint="repos/$GITHUB_REPOSITORY/environments/production"
+          gh api "$endpoint" | jq -e '
+            .deployment_branch_policy.custom_branch_policies and
+            any(.protection_rules[]; .type == "required_reviewers" and (.reviewers | length > 0))
+          '
+          gh api "$endpoint/deployment-branch-policies" | jq -e '
+            any(.branch_policies[]; .name == "v*" and .type == "tag")
+          '
+
+  test:
+    needs: validate
+    uses: ./.github/workflows/build.yml # zizmor: ignore[self-repository] actionlint 1.7.12 supports relative workflow paths
+
   package:
+    needs: test
     runs-on: ubuntu-26.04
     timeout-minutes: 15
     outputs:
@@ -46,7 +72,6 @@ jobs:
             printf 'Expected tag %s for Registry version %s\n' "$expected_tag" "$version" >&2
             exit 1
           fi
-          python3 tools/import_upstream.py check
           compote component pack --name mrubyc-esp32 --dest-dir dist \
             --repository "https://github.com/$GITHUB_REPOSITORY.git" --commit-sha "$source_sha"
           archive=(dist/*.tgz)
