@@ -71,9 +71,11 @@ def main():
     manifest = re.search(
         r'^version: "([^"]+)"$', (ROOT / "idf_component.yml").read_text(), re.M
     )
-    if not manifest or manifest.group(1) != version:
+    manifest_version = manifest.group(1) if manifest else None
+    # A packaging revision (3.4.1~1) re-publishes the same upstream release.
+    if manifest_version is None or manifest_version.split("~", 1)[0] != version:
         problems.append(
-            f'idf_component.yml version {manifest and manifest.group(1)!r} '
+            f"idf_component.yml version {manifest_version!r} "
             f"does not match vendored MRUBYC_VERSION {version!r}"
         )
 
