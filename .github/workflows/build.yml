@@ -18,12 +18,20 @@ jobs:
   vendor:
     name: Verify bundled mruby/c
     runs-on: ubuntu-26.04
-    timeout-minutes: 5
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - run: python3 tools/import_upstream.py check
+      - name: Install compiler build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ruby rake bison gperf
+      - name: Verify example bytecode
+        run: |
+          bash tools/build_mrbc.sh "$RUNNER_TEMP/mrubyc-mrbc"
+          bash tools/generate_bytecode.sh --check "$RUNNER_TEMP/mrubyc-mrbc/bin/mrbc"
 
   build:
     name: IDF ${{ matrix.idf }}
