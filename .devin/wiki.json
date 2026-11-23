@@ -38,7 +38,7 @@
           "content": "The README's app_main pattern: a static 8-aligned pool is passed to mrbc_init, the bytecode array to mrbc_create_task, then mrbc_run drives the scheduler. All examples and test_app follow this shape."
         },
         {
-          "content": "`mrbc --remove-lv -Bhello_bytecode -o main/hello_bytecode.h hello.rb` generates a const uint8_t array for #include. The alternative is `mrbc --remove-lv -o main/hello.mrb`, listed in idf_component_register's EMBED_FILES and accessed via the asm symbol _binary_hello_mrb_start."
+          "content": "`mrbc --remove-lv -Bhello_bytecode -o main/hello_bytecode.h hello.rb` generates a const uint8_t array for #include. The alternative is `mrbc --remove-lv -o main/hello.mrb hello.rb`, which the main component embeds through EMBED_FILES \"hello.mrb\" (a component-relative path) and accesses via the asm symbol _binary_hello_mrb_start."
         },
         {
           "content": "README constraints: keep the pool and backing bytecode alive for the scheduler's lifetime, invoke the VM from a single application task (not concurrently from other FreeRTOS tasks), and only load trusted bytecode."
@@ -86,7 +86,7 @@
       "parent": "What does this component package?",
       "page_notes": [
         {
-          "content": "hello runs mrbc_init, mrbc_create_task(hello_bytecode), mrbc_run: it prints a greeting, waits using the scheduler, then returns. vm_tasks creates two tasks from first_bytecode.h and second_bytecode.h with a 48 KiB pool; interleaved output demonstrates timeslicing."
+          "content": "hello runs mrbc_init, mrbc_create_task(hello_bytecode), mrbc_run: it prints a greeting, waits using the scheduler, then returns. vm_tasks creates two tasks from first_bytecode.h and second_bytecode.h with a 48 KiB pool; both scripts call sleep_ms between prints, so the interleaved output shows two tasks sharing one scheduler and its wait states."
         },
         {
           "content": "m5stack registers a display_write method on mrbc_class_object with mrbc_define_method: it accepts one String of up to 128 bytes, raises ArgumentError or TypeError otherwise, and returns the bytes written through M5Unified. It is build-tested only; no hardware behavior has been verified."
@@ -127,7 +127,7 @@
           "content": "The production job verifies the staged archive's SHA-256, attests build provenance, publishes via OIDC trusted uploaders, and a separate job then creates the GitHub release. Registry versions are immutable: re-run failed jobs rather than re-uploading, and bump the manifest revision plus tag only when the package itself changes."
         },
         {
-          "content": "One-time setup that CI cannot do itself: Registry Trusted Uploaders for OpenBlink/mrubyc-esp32 and upload.yml on both the staging and production registries, plus GitHub staging and production environments with required reviewers; production must also restrict deployment to release tags."
+          "content": "One-time setup that CI cannot do itself: Registry Trusted Uploaders for OpenBlink/mrubyc-esp32 and upload.yml on both the staging and production registries, plus GitHub environments — required reviewers and release-tag restrictions belong on production only, while the separate staging environment only needs to allow release tags."
         }
       ]
     },
@@ -137,7 +137,7 @@
       "parent": "How does a release reach the ESP Component Registry?",
       "page_notes": [
         {
-          "content": "tools/import_upstream.py uses the gh CLI to list mrubyc/mrubyc releases, selects the newest releaseX.Y.Z above the vendored version, downloads the official tarball, and requires the release asset's sha256 digest before importing."
+          "content": "tools/import_upstream.py fetches GitHub's releases/latest result for mrubyc/mrubyc, compares its releaseX.Y.Z tag against the vendored version, downloads the official tarball, and requires the release asset's sha256 digest before importing. It never scans older releases."
         },
         {
           "content": "Before touching vendor/, it reads src/VERSION and load.c in the new tree; if MRUBY_VERSION or RITE_VERSION cannot be verified (a compiler or bytecode-format change), it raises and the workflow stops. The README says to import such releases manually and regenerate example bytecode with the matching mrbc."
