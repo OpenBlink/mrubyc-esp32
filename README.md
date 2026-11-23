@@ -119,7 +119,7 @@ Prefix the manifest version with `v` and replace a revision separator (`~`) with
 
 The tag-triggered workflow packages the tagged commit once, publishes that archive to staging, and builds `hello` against the exact staged version. Production approval is requested only after that build succeeds. Production verifies the same archive's SHA-256 before attesting and publishing it. The GitHub release is published by a separate job after the production Registry upload succeeds. Registry versions are immutable: use **Re-run failed jobs** to retry a consumer build or GitHub release without repeating a successful Registry upload. Use a new manifest revision and tag if the package itself needs to change.
 
-The upstream import workflow requires the repository setting that allows GitHub Actions to create pull requests. It stops before updating the vendor tree if the required mruby compiler or RITE bytecode format changes. For those releases, import the source manually and regenerate the examples with the matching `mrbc`. Review automated import PRs for API and configuration changes before merging.
+The upstream import workflow requires the repository setting that allows GitHub Actions to create pull requests. It stops before updating the vendor tree if the required mruby compiler or RITE bytecode format changes. For those releases, import the source manually, regenerate the examples with the matching `mrbc`, and record the release asset's `sha256:` digest in `vendor/mrubyc.sha256` so the vendor-integrity check keeps passing. Review automated import PRs for API and configuration changes before merging.
 
 ## License
 
