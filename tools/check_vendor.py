@@ -82,7 +82,8 @@ def main():
     )
     manifest_version = manifest.group(1) if manifest else None
     # A packaging revision (3.4.1~1) re-publishes the same upstream release.
-    if manifest_version is None or manifest_version.split("~", 1)[0] != version:
+    base, separator, revision = (manifest_version or "").partition("~")
+    if base != version or (separator and not revision.isdigit()):
         problems.append(
             f"idf_component.yml version {manifest_version!r} "
             f"does not match vendored MRUBYC_VERSION {version!r}"
