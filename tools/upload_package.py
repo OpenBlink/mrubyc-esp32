@@ -21,8 +21,6 @@ def main(archive, staging=False):
     print(f"::add-mask::{token}", flush=True)
     command = ["compote", "component", "upload", "--namespace", "openblink", "--name", "mrubyc-esp32",
                "--archive", archive]
-    if not staging:
-        command.append("--allow-existing")
     subprocess.run(
         command,
         env={**os.environ, "IDF_COMPONENT_API_TOKEN": token, "IDF_COMPONENT_REGISTRY_URL": registry},

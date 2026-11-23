@@ -1,9 +1,9 @@
-import sys
+import argparse
 import tarfile
 from pathlib import PurePosixPath
 
 REQUIRED = {
-    "README.md", "LICENSE", "CMakeLists.txt", "Kconfig", "idf_component.yml",
+    "README.md", "LICENSE", "CMakeLists.txt", "Kconfig", "idf_component.yml", "gptimer_compat.c",
     "vendor/mrubyc/LICENSE", "vendor/mrubyc/LICENSE.unicode",
     "vendor/mrubyc/src/VERSION", "vendor/mrubyc/src/mrblib.c",
     "vendor/mrubyc/hal/esp32/hal.c", "vendor/mrubyc/hal/esp32/hal.h",
@@ -15,15 +15,22 @@ EXAMPLE_HEADERS = {
 }
 
 
-def main(archive):
+def main(archive, commit_sha=None):
     with tarfile.open(archive) as package:
-        files = {PurePosixPath(member.name).as_posix() for member in package if member.isfile()}
+        files = {PurePosixPath(member.name).as_posix(): member for member in package if member.isfile()}
+        if commit_sha:
+            from ruamel.yaml import YAML
+
+            with package.extractfile(files["idf_component.yml"]) as manifest_file:
+                manifest = YAML(typ="safe").load(manifest_file)
+            if manifest.get("repository_info", {}).get("commit_sha") != commit_sha:
+                raise SystemExit("Registry archive commit SHA does not match the tagged commit")
     required = REQUIRED | {
         f"examples/{example}/{path}"
         for example, headers in EXAMPLE_HEADERS.items()
         for path in ("CMakeLists.txt", "main/idf_component.yml", *(f"main/{header}" for header in headers))
     }
-    missing = required - files
+    missing = required - files.keys()
     excluded = {
         path for path in files
         if path.split("/")[0] in {".git", ".github", "test_app", "tools", "dist"}
@@ -33,7 +40,13 @@ def main(archive):
     if missing or excluded:
         raise SystemExit(f"Missing: {sorted(missing)}; unexpectedly packaged: {sorted(excluded)}")
     print(f"Registry archive verified: {len(files)} files, three examples, and upstream licenses")
+    if commit_sha:
+        print(f"Registry archive commit SHA verified: {commit_sha}")
 
 
 if __name__ == "__main__":
-    main(*sys.argv[1:])
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--commit-sha")
+    parser.add_argument("archive")
+    args = parser.parse_args()
+    main(args.archive, args.commit_sha)
