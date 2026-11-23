@@ -14,6 +14,7 @@ set -u
 
 cache_safe_log=$(mktemp)
 trap 'rm -f -- "$cache_safe_log"' EXIT
+bash tools/build_app.sh test_app esp32 cache_safe reconfigure
 if bash tools/build_app.sh test_app esp32 cache_safe >"$cache_safe_log" 2>&1 ||
    ! grep -F 'mruby/c GPTimer callback is not cache-safe.' "$cache_safe_log"; then
   cat "$cache_safe_log"

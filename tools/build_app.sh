@@ -4,6 +4,7 @@ set -euo pipefail
 project=$1
 target=$2
 profile=${3:-default}
+action=${4:-build}
 root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 output=${BUILD_OUTPUT_DIR:-"$root/build"}
 mkdir -p -- "$output"
@@ -20,4 +21,4 @@ else
 fi
 
 rm -f -- "$build/sdkconfig"
-idf.py -C "$source_dir" -B "$build" "${args[@]}" build
+idf.py -C "$source_dir" -B "$build" "${args[@]}" "$action"
