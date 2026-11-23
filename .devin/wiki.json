@@ -1,0 +1,167 @@
+{
+  "repo_notes": [
+    {
+      "content": "This repository is an ESP-IDF component published to the ESP Component Registry as openblink/mrubyc-esp32. It is a thin wrapper: vendor/mrubyc/ contains the unmodified mruby/c release3.4.1 sources (src/ plus hal/esp32/), and the component's own code is limited to CMakeLists.txt, Kconfig, gptimer_compat.c, examples/, test_app/, and tools/."
+    },
+    {
+      "content": "Version contract: component 3.4.1 bundles mruby/c release3.4.1, and Ruby sources must be compiled with mruby 3.4.0's mrbc (RITE0300); mruby 4.0.0 bytecode is rejected. A Registry version suffix such as 3.4.1~1 denotes a packaging revision, not a different VM."
+    },
+    {
+      "content": "README.md is the only user-facing document; there is no docs/ directory. Issues, pull requests, and code comments are written in English by repository policy."
+    },
+    {
+      "content": "tools/, test_app/, and .github/ are development-only and excluded from the packaged Registry archive by files.exclude in idf_component.yml. Distinguish files a consumer receives from files that only exist for development and release automation."
+    }
+  ],
+  "pages": [
+    {
+      "title": "What does this component package?",
+      "purpose": "Overview of the component: which mruby/c sources it bundles, how the ESP-IDF build wiring exposes the VM and its ESP32 HAL to applications, and the version contract between component, mruby/c, mrbc, and RITE bytecode.",
+      "page_notes": [
+        {
+          "content": "vendor/mrubyc/ holds unmodified mruby/c release3.4.1 sources: src/ contains the VM and hal/esp32/ the upstream port's GPTimer-based scheduler timing and console output. CMakeLists.txt registers those directories directly as the component's SRC_DIRS."
+        },
+        {
+          "content": "gptimer_compat.c is the only wrapper source: it fails the build with #error when CONFIG_GPTIMER_ISR_CACHE_SAFE is enabled while the GPTimer HAL is in use, because the upstream timer callback is not placed in IRAM."
+        },
+        {
+          "content": "Compile scripts with mruby 3.4.0's mrbc (RITE0300); mruby 4.0.0 emits a different bytecode format that release3.4.1 rejects. The component version tracks the mruby/c release."
+        }
+      ]
+    },
+    {
+      "title": "How do I compile and run a Ruby script?",
+      "purpose": "End-to-end flow from a .rb source to a running task: mrbc -B/--remove-lv header generation or EMBED_FILES .mrb embedding, the mrbc_init pool contract, mrbc_create_task, mrbc_run, and the single-task and lifetime rules.",
+      "parent": "What does this component package?",
+      "page_notes": [
+        {
+          "content": "The README's app_main pattern: a static 8-aligned pool is passed to mrbc_init, the bytecode array to mrbc_create_task, then mrbc_run drives the scheduler. All examples and test_app follow this shape."
+        },
+        {
+          "content": "`mrbc --remove-lv -Bhello_bytecode -o main/hello_bytecode.h hello.rb` generates a const uint8_t array for #include. The alternative is `mrbc --remove-lv -o main/hello.mrb`, listed in idf_component_register's EMBED_FILES and accessed via the asm symbol _binary_hello_mrb_start."
+        },
+        {
+          "content": "README constraints: keep the pool and backing bytecode alive for the scheduler's lifetime, invoke the VM from a single application task (not concurrently from other FreeRTOS tasks), and only load trusted bytecode."
+        }
+      ]
+    },
+    {
+      "title": "Which Kconfig options control the VM?",
+      "purpose": "The complete CONFIG_MRUBYC_* option map: what each Kconfig symbol does, its default, how CMake exports it as a compile definition, and the constraints between options (float, tick period versus FreeRTOS Hz, cache-safe GPTimer, NDEBUG propagation).",
+      "parent": "What does this component package?",
+      "page_notes": [
+        {
+          "content": "Kconfig defines MAX_VM_COUNT=5, MAX_REGS_SIZE=110, MAX_SYMBOLS_COUNT=255, a single/double float choice (MRBC_USE_FLOAT=1/2), USE_MATH, USE_STRING_UTF8, USE_UNICODE_CASE (depends on UTF8), INT64, SUPPORT_OP_EXT on by default, ALLOC_LIBC, NO_TIMER, SCHEDULER_EXIT on, a 1/2/4/10 ms tick choice constrained by FREERTOS_HZ, TIMESLICE_TICK_COUNT=1, DEBUG, and CONVERT_CRLF."
+        },
+        {
+          "content": "CMakeLists.txt converts each CONFIG_MRUBYC_* into PUBLIC compile definitions so consumers and VM internals share identical structure layouts; overriding the same macros separately in application sources breaks that contract."
+        },
+        {
+          "content": "MRBC_USE_FLOAT=0 is deliberately not offered: upstream release3.4.1 does not compile with it because some code still accesses floating-point fields. Only single and double precision are valid choices."
+        },
+        {
+          "content": "Disabling MRUBYC_DEBUG adds PUBLIC NDEBUG, which also disables C assertions in components that depend on this one, because public structures must agree on debug fields."
+        }
+      ]
+    },
+    {
+      "title": "How is the vendored mruby/c source kept unmodified?",
+      "purpose": "How vendor/mrubyc tracks upstream release3.4.1 without source edits: what is vendored, what is excluded, how intentional warnings are demoted per-target, and how the example bytecode headers are regenerated.",
+      "parent": "What does this component package?",
+      "page_notes": [
+        {
+          "content": "idf_component.yml's files.exclude drops upstream-only files (vendor/mrubyc/src/Makefile, hal_selector.mk, UnicodeData.txt) along with .github/, tools/, test_app/, build outputs, and sdkconfig artifacts from the Registry package."
+        },
+        {
+          "content": "Rather than patch upstream, CMakeLists.txt demotes two intentional diagnostics to warnings only for the vendored target: -Wno-error=implicit-fallthrough (load.c) and -Wno-error=unterminated-string-initialization when the compiler recognizes that warning."
+        },
+        {
+          "content": "Example bytecode headers are committed so firmware builds need no Ruby toolchain; from a checkout they are regenerated with tools/generate_bytecode.sh using mruby 3.4.0's mrbc."
+        }
+      ]
+    },
+    {
+      "title": "What do the examples demonstrate?",
+      "purpose": "The three examples under examples/: hello (init and run), vm_tasks (two scheduled tasks sharing a pool), and m5stack (a C/C++ binding that calls M5Unified from Ruby), including what is and is not hardware-verified.",
+      "parent": "What does this component package?",
+      "page_notes": [
+        {
+          "content": "hello runs mrbc_init, mrbc_create_task(hello_bytecode), mrbc_run: it prints a greeting, waits using the scheduler, then returns. vm_tasks creates two tasks from first_bytecode.h and second_bytecode.h with a 48 KiB pool; interleaved output demonstrates timeslicing."
+        },
+        {
+          "content": "m5stack registers a display_write method on mrbc_class_object with mrbc_define_method: it accepts one String of up to 128 bytes, raises ArgumentError or TypeError otherwise, and returns the bytes written through M5Unified. It is build-tested only; no hardware behavior has been verified."
+        },
+        {
+          "content": "Each example is a standalone IDF project with its own CMakeLists.txt and main/idf_component.yml, shipped with generated bytecode headers so consumers build them without Ruby."
+        }
+      ]
+    },
+    {
+      "title": "How does CI build and emulate the component?",
+      "purpose": "The verification pipeline: test_app's sdkconfig profiles and compile-time contract assertions, verify_idf.sh's containerized builds and QEMU runs, the build.yml ESP-IDF version and chip matrix, and the lint and security workflows.",
+      "parent": "What does this component package?",
+      "page_notes": [
+        {
+          "content": "test_app/main/main.c uses _Static_assert and #error pairs to verify every CONFIG_MRUBYC_* arrives as the identical compile definition, so consumer/VM contract drift fails compilation. It builds the real hello bytecode to smoke the runtime."
+        },
+        {
+          "content": "tools/verify_idf.sh runs inside the pinned espressif/idf container: the cache_safe profile must fail with the expected #error, test_app then builds for esp32/esp32c3/esp32s3/esp32c6 and seven sdkconfig.ci profiles, hello and vm_tasks build and run under QEMU on esp32/esp32c3 via tools/check_qemu.py, and m5stack gets a build-only check on esp32s3."
+        },
+        {
+          "content": "build.yml builds a matrix of ESP-IDF 5.5.6, 6.0.3, and 6.1.1 images pinned by sha256 digest, with ccache and tool caches keyed on sources and tools. workflow-lint.yml runs actionlint (with .github/actionlint.yaml registering ubuntu-26.04 labels) and ShellCheck; security.yml and scorecard.yml audit the workflows themselves."
+        }
+      ]
+    },
+    {
+      "title": "How does a release reach the ESP Component Registry?",
+      "purpose": "The tag-driven publish pipeline in upload.yml: packaging, staging upload via OIDC, a consumer build against the exact staged version, the production approval gate, attestation, production upload, and the GitHub release job.",
+      "parent": "What does this component package?",
+      "page_notes": [
+        {
+          "content": "Tag mapping: manifest version 3.4.1 uses tag v3.4.1; a Registry revision like 3.4.1~1 replaces the tilde with a dot as v3.4.1.1. The manifest's version field always keeps the Registry form."
+        },
+        {
+          "content": "upload.yml packages the tagged commit once (tools/check_package.py verifies required files, exclusions, and the commit SHA recorded in the manifest), publishes that archive to the staging registry via OIDC, and builds the hello example against the exact staged version before requesting production approval."
+        },
+        {
+          "content": "The production job verifies the staged archive's SHA-256, attests build provenance, publishes via OIDC trusted uploaders, and a separate job then creates the GitHub release. Registry versions are immutable: re-run failed jobs rather than re-uploading, and bump the manifest revision plus tag only when the package itself changes."
+        },
+        {
+          "content": "One-time setup that CI cannot do itself: Registry Trusted Uploaders for OpenBlink/mrubyc-esp32 and upload.yml on both the staging and production registries, plus GitHub staging and production environments with required reviewers; production must also restrict deployment to release tags."
+        }
+      ]
+    },
+    {
+      "title": "How does upstream import automation work?",
+      "purpose": "How bump-mrubyc.yml and tools/import_upstream.py watch mruby/c releases, verify official assets, update vendor/mrubyc, and open a pull request — and when they stop for manual handling.",
+      "parent": "How does a release reach the ESP Component Registry?",
+      "page_notes": [
+        {
+          "content": "tools/import_upstream.py uses the gh CLI to list mrubyc/mrubyc releases, selects the newest releaseX.Y.Z above the vendored version, downloads the official tarball, and requires the release asset's sha256 digest before importing."
+        },
+        {
+          "content": "Before touching vendor/, it reads src/VERSION and load.c in the new tree; if MRUBY_VERSION or RITE_VERSION cannot be verified (a compiler or bytecode-format change), it raises and the workflow stops. The README says to import such releases manually and regenerate example bytecode with the matching mrbc."
+        },
+        {
+          "content": "The workflow opens a pull request instead of committing to main and requires the repository setting that allows GitHub Actions to create pull requests. Import PRs need human review for API and configuration changes."
+        }
+      ]
+    },
+    {
+      "title": "How do I build and verify changes locally?",
+      "purpose": "Developer workflow: building examples and test_app from a checkout with tools/build_app.sh, preparing packaged examples, smoke-testing the registry archive, and the repository's contribution conventions.",
+      "parent": "What does this component package?",
+      "page_notes": [
+        {
+          "content": "tools/build_app.sh <example|test_app> <target> [profile] [reconfigure] builds inside an activated ESP-IDF environment, with BUILD_OUTPUT_DIR selecting the build directory. tools/generate_bytecode.sh regenerates the committed headers."
+        },
+        {
+          "content": "tools/prepare_example.py stages an example for Registry consumers, tools/check_qemu.py asserts expected console output under QEMU, tools/check_package.py validates an archive, and tools/smoke_registry.sh smoke-tests a built package."
+        },
+        {
+          "content": "Contribution rules from the README: use English, and for integration reports include the component version, ESP-IDF version, chip, and relevant configuration."
+        }
+      ]
+    }
+  ]
+}
