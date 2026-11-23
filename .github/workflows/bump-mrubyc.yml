@@ -35,6 +35,7 @@ jobs:
           branch: automation/bump-mrubyc
           add-paths: |
             vendor/mrubyc
+            vendor/mrubyc.sha256
             idf_component.yml
           commit-message: Import mruby/c release${{ steps.upstream.outputs.version }}
           title: Import mruby/c release${{ steps.upstream.outputs.version }}

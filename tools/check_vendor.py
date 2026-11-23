@@ -3,6 +3,8 @@
 Reads MRUBYC_VERSION from vendor/mrubyc/src/VERSION, downloads the matching
 mrubyc/mrubyc release asset after checking its official SHA-256 digest, and
 fails when the vendored files differ from the archive or contain extras.
+The digest recorded in vendor/mrubyc.sha256 must match the current release
+asset, so upstream republishing an archive is also reported.
 """
 
 import hashlib
@@ -18,6 +20,7 @@ from tempfile import TemporaryDirectory
 from import_upstream import ROOT, UPSTREAM, gh, vendored_version
 
 VENDORED = ("src", "hal/esp32", "LICENSE", "LICENSE.unicode")
+DIGEST_FILE = ROOT / "vendor/mrubyc.sha256"
 
 
 def differences(expected, actual):
@@ -43,6 +46,12 @@ def main():
         raise ValueError("Missing official SHA-256 digest")
 
     problems = []
+    recorded = DIGEST_FILE.read_text().strip() if DIGEST_FILE.is_file() else None
+    if recorded != digest:
+        problems.append(
+            f"Upstream {tag} asset digest is {digest} but {DIGEST_FILE.relative_to(ROOT)} "
+            f"records {recorded!r}; the release asset may have been republished"
+        )
     with TemporaryDirectory(dir=ROOT) as temporary:
         staging = Path(temporary)
         archive = staging / name

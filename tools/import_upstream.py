@@ -88,6 +88,7 @@ def import_latest(release, root):
         shutil.rmtree(current)
         replacement.rename(current)
         manifest.write_text(updated)
+        (root / "vendor/mrubyc.sha256").write_text(digest + "\n")
     return version
 
 
