@@ -40,6 +40,7 @@ jobs:
   package:
     needs: test
     runs-on: ubuntu-26.04
+    timeout-minutes: 15
     outputs:
       artifact-id: ${{ steps.upload.outputs.artifact-id }}
       archive-sha256: ${{ steps.pack.outputs.archive-sha256 }}
