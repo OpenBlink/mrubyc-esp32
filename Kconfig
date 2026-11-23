@@ -115,4 +115,65 @@ config MRUBYC_CONVERT_CRLF
     bool "Convert LF to CRLF in VM console output"
     default n
 
+config MRUBYC_ALLOC_PROFILING
+    bool "Pool allocation profiling"
+    depends on !MRUBYC_ALLOC_LIBC
+    default n
+
+config MRUBYC_OOM_POOL_STATS
+    bool "Print pool statistics on allocation failure"
+    depends on !MRUBYC_ALLOC_LIBC
+    default n
+
+config MRUBYC_PANIC_ON_UNHANDLED_EXCEPTION
+    bool "Abort on an unhandled exception at VM teardown"
+    default n
+    help
+        This does not affect rescued exceptions or permanent tasks that
+        skip VM teardown. The ESP-IDF panic settings control what follows.
+
+config MRUBYC_SYMBOL_SEARCH_LINEAR
+    bool "Search dynamic symbols linearly instead of using a tree"
+    default n
+
+config MRUBYC_EXCEPTION_CALL_NEST_LEVEL
+    int "Maximum exception backtrace depth"
+    range 1 64
+    default 8
+
+config MRUBYC_TASK_NAME_LEN
+    int "Maximum task name length in bytes"
+    range 1 255
+    default 15
+
+config MRUBYC_KV_SIZE_INIT
+    int "Initial key-value table capacity"
+    range 1 64
+    default 2
+
+config MRUBYC_KV_SIZE_INCREMENT
+    int "Key-value table capacity increment"
+    range 1 64
+    default 5
+
+config MRUBYC_NO_STDIO
+    bool "Omit Ruby's p, print, puts and printf"
+    default n
+    help
+        Keeps sprintf and runtime diagnostics available.
+
+config MRUBYC_DEBUG_REGS
+    bool "Log register usage at VM teardown"
+    default n
+
+config MRUBYC_DISABLE_LEGACY_VALUE_MACROS
+    bool "Hide deprecated C value macros"
+    default n
+
+menu "Unavailable modes and fixed settings in this component"
+    comment "Float cannot be disabled in release3.4.1; String stays enabled"
+    comment "16-bit integers, NaN boxing, VM ID tracking and 16-bit pools are not offered"
+    comment "24-bit pool headers, little-endian byte order and 64-bit alignment rules are fixed"
+endmenu
+
 endmenu
