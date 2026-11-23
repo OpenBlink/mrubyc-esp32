@@ -89,6 +89,8 @@ The floating-point choice offers single and double precision. Upstream mruby/c `
 
 The nominal Ruby time slice is the tick period multiplied by the timeslice count. The FreeRTOS tick period must not exceed the selected mruby/c tick period; the 1, 2, and 4 ms options require a faster FreeRTOS tick. With hardware timing disabled, the scheduler uses software ticks, not a hardware timebase.
 
+The upstream GPTimer callback is not placed in IRAM, so it cannot be used with `CONFIG_GPTIMER_ISR_CACHE_SAFE=y`. Disable that setting or enable `CONFIG_MRUBYC_NO_TIMER` to use software ticks.
+
 The exported compile definitions keep consumer and VM structures consistent. Don't override them separately in an application's source files. Turning off mruby/c debug uses the upstream `NDEBUG` switch and also disables C assertions in components that depend on this one.
 
 ## Examples

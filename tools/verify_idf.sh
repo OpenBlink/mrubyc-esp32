@@ -12,6 +12,14 @@ set +u
 source "$IDF_PATH/export.sh"
 set -u
 
+cache_safe_log=$(mktemp)
+trap 'rm -f -- "$cache_safe_log"' EXIT
+if bash tools/build_app.sh test_app esp32 cache_safe >"$cache_safe_log" 2>&1 ||
+   ! grep -F 'mruby/c GPTimer callback is not cache-safe.' "$cache_safe_log"; then
+  cat "$cache_safe_log"
+  exit 1
+fi
+
 for target in esp32 esp32c3 esp32s3 esp32c6; do
   bash tools/build_app.sh test_app "$target"
 done

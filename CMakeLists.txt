@@ -7,6 +7,12 @@ idf_component_register(
     PRIV_REQUIRES esp_driver_gptimer soc
 )
 
+if(CONFIG_GPTIMER_ISR_CACHE_SAFE AND NOT CONFIG_MRUBYC_NO_TIMER)
+    message(FATAL_ERROR
+        "mruby/c GPTimer callback is not cache-safe. "
+        "Disable CONFIG_GPTIMER_ISR_CACHE_SAFE or enable CONFIG_MRUBYC_NO_TIMER.")
+endif()
+
 target_compile_definitions(${COMPONENT_LIB} PUBLIC
     MAX_VM_COUNT=${CONFIG_MRUBYC_MAX_VM_COUNT}
     MAX_REGS_SIZE=${CONFIG_MRUBYC_MAX_REGS_SIZE}
