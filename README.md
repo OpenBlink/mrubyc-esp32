@@ -115,7 +115,7 @@ Use English for issues, pull requests, and code comments. For integration report
 
 CI builds local sources with default and alternate VM options. The component demotes two diagnostics from errors to warnings only for the vendored target: the intentional byte-array debug marker initializer (when supported by the compiler) and an intentional bytecode-loader fallthrough. Neither requires changing the VM defaults.
 
-Validate the package and a staging Registry consumer before tagging a release. The tag must match the manifest version. Configure required reviewers and release tag restrictions on the GitHub `production` environment, and configure the Registry Trusted Uploader for `OpenBlink/mrubyc-esp32` and `upload.yml` before the first release. The manually dispatched staging job uses a separate `staging` environment and staging Registry trust configuration.
+Validate the package and a staging Registry consumer before tagging a release. Prefix the manifest version with `v` and replace a revision separator (`~`) with a dot in the Git tag: `3.4.1` uses `v3.4.1`, and `3.4.1~1` uses `v3.4.1.1`. Keep the Registry version unchanged in the manifest. Configure required reviewers and release tag restrictions on the GitHub `production` environment, and configure the Registry Trusted Uploader for `OpenBlink/mrubyc-esp32` and `upload.yml` before the first release. The manually dispatched staging job uses a separate `staging` environment and staging Registry trust configuration.
 
 The upstream import workflow requires the repository setting that allows GitHub Actions to create pull requests. Review its PRs for API, configuration, and compiler changes; regenerate example bytecode if the compiler changes before merging.
 
