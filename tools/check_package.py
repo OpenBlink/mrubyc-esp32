@@ -4,6 +4,7 @@ from pathlib import PurePosixPath
 
 REQUIRED = {
     "README.md", "LICENSE", "CMakeLists.txt", "Kconfig", "idf_component.yml", "gptimer_compat.c",
+    "fatal_hooks.c", "fatal_hooks.h",
     "vendor/mrubyc/LICENSE", "vendor/mrubyc/LICENSE.unicode",
     "vendor/mrubyc/src/VERSION", "vendor/mrubyc/src/mrblib.c",
     "vendor/mrubyc/hal/esp32/hal.c", "vendor/mrubyc/hal/esp32/hal.h",
@@ -33,7 +34,7 @@ def main(archive, commit_sha=None):
     missing = required - files.keys()
     excluded = {
         path for path in files
-        if path.split("/")[0] in {".git", ".github", "test_app", "tools", "dist"}
+        if path.split("/")[0] in {".git", ".github", ".devin", "test_app", "tools", "dist"}
         or {"build", "managed_components", "__pycache__"} & set(path.split("/"))
         or PurePosixPath(path).name in {"sdkconfig", "sdkconfig.old", "dependencies.lock"}
     }
