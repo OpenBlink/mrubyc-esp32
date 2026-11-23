@@ -1,0 +1,54 @@
+name: ESP-IDF build
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: IDF ${{ matrix.idf }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - idf: "5.5.6"
+            digest: sha256:bf72fe7a15c22849a9a94147301165a545fb8905d97c176cf748e3e4614cac84
+          - idf: "6.0.3"
+            digest: sha256:54278f2c01e6e759502e2f04c9103589c17528923426f4d63193490c7a08f555
+          - idf: "6.1.1"
+            digest: sha256:2b4f966c37eaedc19542b0637a5f850b2eff9478d8e858192aa0073d92c2dc91
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cache/mrubyc/ccache
+            ~/.cache/mrubyc/Espressif
+            ~/.cache/mrubyc/dist
+          key: idf-${{ matrix.idf }}-${{ matrix.digest }}-${{ hashFiles('idf_component.yml', 'CMakeLists.txt', 'Kconfig', 'examples/**', 'test_app/**', 'tools/verify_idf.sh', 'vendor/mrubyc/**') }}
+          restore-keys: |
+            idf-${{ matrix.idf }}-${{ matrix.digest }}-
+      - name: Build and emulate
+        env:
+          IMAGE: espressif/idf:v${{ matrix.idf }}@${{ matrix.digest }}
+        run: |
+          mkdir -p "$HOME/.cache/mrubyc"
+          docker run --init --rm --pull=missing \
+            -v "$GITHUB_WORKSPACE:/work/mrubyc-esp32" \
+            -v "$HOME/.cache/mrubyc:/cache" -w /work/mrubyc-esp32 \
+            -e CCACHE_DIR=/cache/ccache -e CCACHE_MAXSIZE=350M -e XDG_CACHE_HOME=/cache \
+            -e GIT_CONFIG_COUNT=1 -e GIT_CONFIG_KEY_0=safe.directory -e GIT_CONFIG_VALUE_0=/work/mrubyc-esp32 \
+            "$IMAGE" bash tools/verify_idf.sh

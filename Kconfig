@@ -1,0 +1,118 @@
+menu "mruby/c"
+
+config MRUBYC_MAX_VM_COUNT
+    int "Maximum number of VMs"
+    range 1 255
+    default 5
+
+config MRUBYC_MAX_REGS_SIZE
+    int "Default registers per VM"
+    range 1 65535
+    default 110
+
+config MRUBYC_MAX_SYMBOLS_COUNT
+    int "Maximum number of dynamic symbols"
+    range 1 32524
+    default 255
+
+choice MRUBYC_USE_FLOAT
+    prompt "Floating-point support"
+    default MRUBYC_FLOAT_DOUBLE
+
+    config MRUBYC_FLOAT_SINGLE
+        bool "Single precision"
+
+    config MRUBYC_FLOAT_DOUBLE
+        bool "Double precision"
+endchoice
+
+config MRUBYC_FLOAT_VALUE
+    int
+    default 1 if MRUBYC_FLOAT_SINGLE
+    default 2
+
+config MRUBYC_USE_MATH
+    bool "Math module"
+    default n
+
+config MRUBYC_USE_STRING_UTF8
+    bool "UTF-8 string indexing"
+    default n
+
+config MRUBYC_USE_UNICODE_CASE
+    bool "Unicode BMP case conversion"
+    depends on MRUBYC_USE_STRING_UTF8
+    default n
+
+config MRUBYC_INT64
+    bool "64-bit integers"
+    default n
+
+config MRUBYC_SUPPORT_OP_EXT
+    bool "Extended bytecode operands"
+    default y
+
+config MRUBYC_ALLOC_LIBC
+    bool "Use libc allocation instead of the VM memory pool"
+    default n
+
+config MRUBYC_NO_TIMER
+    bool "Emulate scheduler ticks instead of using GPTimer"
+    default n
+
+config MRUBYC_SCHEDULER_EXIT
+    bool "Return from mrbc_run when no active tasks remain"
+    default y
+
+choice MRUBYC_TICK_UNIT
+    prompt "Scheduler tick period"
+    default MRUBYC_TICK_10_MS
+    help
+        Use a FreeRTOS tick no longer than this period so the idle delay
+        is at least one FreeRTOS tick.
+
+    config MRUBYC_TICK_1_MS
+        bool "1 ms"
+        depends on FREERTOS_HZ >= 1000
+
+    config MRUBYC_TICK_2_MS
+        bool "2 ms"
+        depends on FREERTOS_HZ >= 500
+
+    config MRUBYC_TICK_4_MS
+        bool "4 ms"
+        depends on FREERTOS_HZ >= 250
+
+    config MRUBYC_TICK_10_MS
+        bool "10 ms"
+        depends on FREERTOS_HZ >= 100
+endchoice
+
+config MRUBYC_TICK_VALUE
+    int
+    default 1 if MRUBYC_TICK_1_MS
+    default 2 if MRUBYC_TICK_2_MS
+    default 4 if MRUBYC_TICK_4_MS
+    default 10
+
+config MRUBYC_TIMESLICE_TICK_COUNT
+    int "Scheduler ticks per time slice"
+    range 1 255
+    default 1
+    help
+        The nominal time slice is the tick period times this count.
+
+config MRUBYC_DEBUG
+    bool "Debug checks and object markers"
+    depends on !COMPILER_OPTIMIZATION_ASSERTIONS_DISABLE
+    default y
+    help
+        Follows ESP-IDF assertions by default. Disabling this adds NDEBUG
+        for the component and its consumers because public structures
+        must agree on whether debug fields are present.
+
+config MRUBYC_CONVERT_CRLF
+    bool "Convert LF to CRLF in VM console output"
+    default n
+
+endmenu

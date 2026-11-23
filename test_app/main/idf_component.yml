@@ -1,0 +1,3 @@
+dependencies:
+  openblink/mrubyc-esp32:
+    override_path: "../.."
