@@ -45,6 +45,7 @@ jobs:
             printf 'Expected tag %s for Registry version %s\n' "$expected_tag" "$version" >&2
             exit 1
           fi
+          python3 tools/import_upstream.py check
           compote component pack --name mrubyc-esp32 --dest-dir dist \
             --repository "https://github.com/$GITHUB_REPOSITORY.git" --commit-sha "$source_sha"
           archive=(dist/*.tgz)
