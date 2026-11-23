@@ -46,6 +46,10 @@ choice MRUBYC_STRING_SIZE_T
 
     config MRUBYC_STRING_SIZE_32
         bool "32 bits (uint32_t)"
+        help
+            Exception messages still have a 16-bit length in mruby/c
+            3.4.1. Limit them to 65535 bytes to avoid truncation and
+            possible memory leaks.
 endchoice
 
 config MRUBYC_STRING_SIZE_BITS

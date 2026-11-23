@@ -113,6 +113,8 @@ The floating-point choice offers single and double precision. Upstream mruby/c `
 
 The **Read-only settings in mruby/c 3.4.1** menu lists the fixed values individually. String support, the 24-bit pool format, little-endian byte order, and the 64-bit alignment requirement stay enabled. Disabling String, using 16-bit integers, or tracking allocator VM IDs fails to build with unmodified upstream sources. The 16-bit pool format, big-endian byte order, and 32-bit alignment requirement are not selectable in this ESP32 port.
 
+Even with 32-bit String lengths, limit exception messages to 65,535 **bytes**. In mruby/c 3.4.1, longer messages passed to `Exception.new` or the C exception constructors can have their stored length truncated. If that length wraps to zero, the exception does not free the message buffer.
+
 Allocator tuning affects the pool's overhead and allocation granularity, not the size of the buffer passed to `mrbc_init`. Set the minimum block size to a multiple of four bytes and at least `2^ALLOC_IGNORE_LSBS`. Changing the String length width or enabling NaN boxing changes the public C representation, so rebuild the component and all its consumers together.
 
 The nominal Ruby time slice is the tick period multiplied by the timeslice count. The FreeRTOS tick period must not exceed the selected mruby/c tick period; the 1, 2, and 4 ms options require a faster FreeRTOS tick. With hardware timing disabled, the scheduler uses software ticks, not a hardware timebase.
