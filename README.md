@@ -119,7 +119,7 @@ Validate the package and a staging Registry consumer before tagging a release. P
 
 Staging publishes the archive inspected by the package job and fails if that version already exists. Use a new manifest revision for another staging upload; a rerun does not replace the previous package.
 
-The upstream import workflow requires the repository setting that allows GitHub Actions to create pull requests. Review its PRs for API, configuration, and compiler changes; regenerate example bytecode if the compiler changes before merging.
+The upstream import workflow requires the repository setting that allows GitHub Actions to create pull requests. It stops before updating the vendor tree if the required mruby compiler or RITE bytecode format changes. For those releases, import the source manually and regenerate the examples with the matching `mrbc`. Review automated import PRs for API and configuration changes before merging.
 
 ## License
 

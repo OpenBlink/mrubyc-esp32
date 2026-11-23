@@ -23,7 +23,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Verify and import the official release asset
+      - name: Verify the official asset and example bytecode compatibility before importing
         id: upstream
         env:
           GH_TOKEN: ${{ github.token }}
@@ -40,4 +40,4 @@ jobs:
           title: Import mruby/c release${{ steps.upstream.outputs.version }}
           body: |
             Imports the official upstream release asset after verifying its SHA-256 digest.
-            Review VM defaults, ESP32 HAL/API changes, and compiler compatibility before merging.
+            The mruby compiler and RITE format are unchanged. Review VM defaults and ESP32 HAL/API changes before merging.

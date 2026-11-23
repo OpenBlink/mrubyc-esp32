@@ -29,6 +29,14 @@ def vendored_version(directory):
     return version
 
 
+def bytecode_compatibility(directory):
+    compiler = re.search(r'^MRUBY_VERSION = "([^"]+)"$', (directory / "src/VERSION").read_text(), re.M)
+    rite = re.search(r'\bRITE_VERSION\s*\[\s*4\s*\]\s*=\s*"([0-9]{4})"', (directory / "src/load.c").read_text())
+    if not compiler or not rite:
+        raise ValueError("Cannot verify the upstream compiler and RITE version; import manually and regenerate example bytecode.")
+    return compiler.group(1), rite.group(1)
+
+
 def import_latest(release, root):
     tag = release["tag_name"]
     current = root / "vendor/mrubyc"
@@ -57,6 +65,15 @@ def import_latest(release, root):
         source = staging / f"mrubyc-{tag}"
         if vendored_version(source) != version:
             raise ValueError("Release asset VERSION does not match its tag")
+
+        previous_compiler, previous_rite = bytecode_compatibility(current)
+        compiler, rite = bytecode_compatibility(source)
+        if (compiler, rite) != (previous_compiler, previous_rite):
+            raise ValueError(
+                f"Example bytecode must be regenerated: mruby {previous_compiler} (RITE{previous_rite}) "
+                f"changes to mruby {compiler} (RITE{rite}). "
+                f"Import {tag} manually and run bash tools/generate_bytecode.sh with mruby {compiler}'s mrbc."
+            )
 
         replacement = staging / "vendor"
         shutil.copytree(source / "src", replacement / "src")
