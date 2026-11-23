@@ -115,7 +115,7 @@ Use English for issues, pull requests, and code comments. For integration report
 
 CI builds local sources with default and alternate VM options. The component demotes two diagnostics from errors to warnings only for the vendored target: the intentional byte-array debug marker initializer (when supported by the compiler) and an intentional bytecode-loader fallthrough. Neither requires changing the VM defaults.
 
-Merge the release changes into `main` before tagging. Tag the resulting commit on `main`, not the PR branch tip; after a squash merge these are different commits.
+Merge the release changes into `main` before tagging, then run `git fetch origin`. Tag `origin/main` if it still points to the resulting release commit. If `main` has advanced, tag the release commit by SHA. Do not tag the PR branch tip after a squash merge.
 
 Prefix the manifest version with `v` and replace a revision separator (`~`) with a dot in the Git tag: `3.4.1` uses `v3.4.1`, and `3.4.1~1` uses `v3.4.1.1`. Keep the Registry version unchanged in the manifest. Configure required reviewers and release tag restrictions on the GitHub `production` environment. Before the first release, configure Registry Trusted Uploaders for `OpenBlink/mrubyc-esp32` and `upload.yml` on the staging and production registries, and allow release tags through the separate GitHub `staging` environment.
 
