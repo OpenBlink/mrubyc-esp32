@@ -57,6 +57,36 @@ def compare_vendor(expected, current):
             raise ValueError(f"Vendored entry differs from {RELEASE}: {path}")
 
 
+def check_build_sources(expected, root):
+    makefile = (expected / "src/Makefile").read_text().replace("\\\n", "")
+    source_lists = re.findall(r"^[ \t]*SRCS[ \t]*=[ \t]*([^#\n]+)", makefile, re.M)
+    if len(source_lists) != 1:
+        raise ValueError("Expected one SRCS assignment in the upstream Makefile")
+    upstream_sources = sorted(source_lists[0].split())
+
+    cmake = re.sub(r"#[^\n]*", "", (root / "CMakeLists.txt").read_text())
+    registrations = re.findall(r"\bidf_component_register\s*\(([^()]*)\)", cmake)
+    expected_root = 'set(mrubyc_dir "${CMAKE_CURRENT_LIST_DIR}/vendor/mrubyc")'
+    source_dirs = {'"${mrubyc_dir}/src"', '"${mrubyc_dir}/hal/esp32"'}
+    if len(registrations) != 1 or expected_root not in cmake:
+        raise ValueError("Expected ESP-IDF registration of the bundled mruby/c library")
+    args = registrations[0].split()
+    if args[:1] != ["SRC_DIRS"] or set(args[1:3]) != source_dirs or args[3:4] != ["INCLUDE_DIRS"] or (
+        {"SRCS", "EXCLUDE_SRCS", "SRC_DIRS"} & set(args[3:])
+    ):
+        raise ValueError("CMakeLists.txt must compile the bundled src and ESP32 HAL directories without source overrides")
+
+    cmake_sources = sorted(
+        path.name
+        for directory in ("src", "hal/esp32")
+        for path in (expected / directory).iterdir()
+        if path.is_file() and path.suffix in {".c", ".cpp", ".S"}
+    )
+    if cmake_sources != upstream_sources:
+        raise ValueError("CMakeLists.txt source directories are out of sync with upstream Makefile SRCS:\n"
+                         f"  upstream: {' '.join(upstream_sources)}\n  ESP-IDF:  {' '.join(cmake_sources)}")
+
+
 def stage_vendor(staging, archive):
     if archive is None:
         archive = staging / ASSET
@@ -102,9 +132,10 @@ def run(mode, archive, root):
         replacement = stage_vendor(staging, archive)
         if mode == "check":
             compare_vendor(replacement, current)
+            check_build_sources(replacement, root)
             if versions[0] != version:
                 raise ValueError(f"idf_component.yml version {versions[0]} does not match {RELEASE}")
-            print(f"Verified vendor/mrubyc and idf_component.yml against {RELEASE}")
+            print(f"Verified vendor/mrubyc, CMake sources and idf_component.yml against {RELEASE}")
             return
 
         previous_compiler, previous_rite = bytecode_compatibility(current)
