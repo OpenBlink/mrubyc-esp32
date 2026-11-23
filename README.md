@@ -117,6 +117,8 @@ CI builds local sources with default and alternate VM options. The component dem
 
 Validate the package and a staging Registry consumer before tagging a release. Prefix the manifest version with `v` and replace a revision separator (`~`) with a dot in the Git tag: `3.4.1` uses `v3.4.1`, and `3.4.1~1` uses `v3.4.1.1`. Keep the Registry version unchanged in the manifest. Configure required reviewers and release tag restrictions on the GitHub `production` environment, and configure the Registry Trusted Uploader for `OpenBlink/mrubyc-esp32` and `upload.yml` before the first release. The manually dispatched staging job uses a separate `staging` environment and staging Registry trust configuration.
 
+Staging publishes the archive inspected by the package job and fails if that version already exists. Use a new manifest revision for another staging upload; a rerun does not replace the previous package.
+
 The upstream import workflow requires the repository setting that allows GitHub Actions to create pull requests. Review its PRs for API, configuration, and compiler changes; regenerate example bytecode if the compiler changes before merging.
 
 ## License
