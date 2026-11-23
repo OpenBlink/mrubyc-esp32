@@ -80,11 +80,17 @@ Run `idf.py menuconfig` and open **Component config → mruby/c**. Defaults matc
 | `MAX_SYMBOLS_COUNT` | 255 |
 | Floating-point choice | Double precision (`MRBC_USE_FLOAT=2`) |
 | `USE_MATH` | Off |
+| String length field width | 16 bits (`uint16_t`); optionally 32 bits (`uint32_t`) |
 | `USE_STRING_UTF8` | Off; String is enabled, with byte indexing |
 | `USE_UNICODE_CASE` | Off; requires UTF-8 indexing |
 | `INT64` | Off |
+| `NAN_BOXING` | Off; only available with 32-bit integers |
 | `SUPPORT_OP_EXT` | On (`MRBC_SUPPORT_OP_EXT=1`) |
 | `ALLOC_LIBC` | Off; use the mruby/c pool allocator |
+| `ALLOC_FLI_BIT_WIDTH` | 9; pool allocator only |
+| `ALLOC_SLI_BIT_WIDTH` | 3; pool allocator only |
+| `ALLOC_IGNORE_LSBS` | 4; pool allocator only |
+| `MIN_MEMORY_BLOCK_SIZE` | 16 bytes (upstream's `sizeof(FREE_BLOCK)` on ESP32); pool allocator only |
 | `NO_TIMER` | Off; use GPTimer |
 | `SCHEDULER_EXIT` | On; return when no active Ruby tasks remain |
 | Tick-period choice | 10 ms |
@@ -104,6 +110,10 @@ Run `idf.py menuconfig` and open **Component config → mruby/c**. Defaults matc
 | `DISABLE_LEGACY_VALUE_MACROS` | Off; enabling it hides legacy C value macros such as `GET_INT_ARG` |
 
 The floating-point choice offers single and double precision. Upstream mruby/c `release3.4.1` does not compile with `MRBC_USE_FLOAT=0` because some code still accesses floating-point fields. This release leaves the upstream source unmodified and does not offer that mode. We will re-check it for v4.0.0.
+
+The **Read-only settings in mruby/c 3.4.1** menu lists the fixed values individually. String support, the 24-bit pool format, little-endian byte order, and the 64-bit alignment requirement stay enabled. Disabling String, using 16-bit integers, or tracking allocator VM IDs fails to build with unmodified upstream sources. The 16-bit pool format, big-endian byte order, and 32-bit alignment requirement are not selectable in this ESP32 port.
+
+Allocator tuning affects the pool's overhead and allocation granularity, not the size of the buffer passed to `mrbc_init`. Set the minimum block size to a multiple of four bytes and at least `2^ALLOC_IGNORE_LSBS`. Changing the String length width or enabling NaN boxing changes the public C representation, so rebuild the component and all its consumers together.
 
 The nominal Ruby time slice is the tick period multiplied by the timeslice count. The FreeRTOS tick period must not exceed the selected mruby/c tick period; the 1, 2, and 4 ms options require a faster FreeRTOS tick. With hardware timing disabled, the scheduler uses software ticks, not a hardware timebase.
 

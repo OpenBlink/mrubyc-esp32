@@ -28,7 +28,7 @@ done
 for profile in all_options int64 no_timer alloc_libc unicode tick_2_ms tick_4_ms; do
   bash tools/build_app.sh test_app esp32 "$profile"
 done
-for profile in parity oom_default oom_stats exception_default exception_panic; do
+for profile in parity nan_boxing oom_default oom_stats exception_default exception_panic; do
   bash tools/build_app.sh test_app esp32 "$profile"
   python tools/check_qemu.py test_app esp32 "${BUILD_OUTPUT_DIR:-build}" "$profile"
 done

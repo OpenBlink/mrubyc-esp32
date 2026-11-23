@@ -35,6 +35,24 @@ config MRUBYC_USE_MATH
     bool "Math module"
     default n
 
+choice MRUBYC_STRING_SIZE_T
+    prompt "String length field width"
+    default MRUBYC_STRING_SIZE_16
+    help
+        This changes the type of the length field in the public C API.
+
+    config MRUBYC_STRING_SIZE_16
+        bool "16 bits (uint16_t)"
+
+    config MRUBYC_STRING_SIZE_32
+        bool "32 bits (uint32_t)"
+endchoice
+
+config MRUBYC_STRING_SIZE_BITS
+    int
+    default 32 if MRUBYC_STRING_SIZE_32
+    default 16
+
 config MRUBYC_USE_STRING_UTF8
     bool "UTF-8 string indexing"
     default n
@@ -48,6 +66,14 @@ config MRUBYC_INT64
     bool "64-bit integers"
     default n
 
+config MRUBYC_NAN_BOXING
+    bool "NaN-boxed Ruby values"
+    depends on !MRUBYC_INT64
+    default n
+    help
+        Changes the C representation of Ruby values. This mode uses
+        32-bit integers and stores floating-point values as doubles.
+
 config MRUBYC_SUPPORT_OP_EXT
     bool "Extended bytecode operands"
     default y
@@ -55,6 +81,39 @@ config MRUBYC_SUPPORT_OP_EXT
 config MRUBYC_ALLOC_LIBC
     bool "Use libc allocation instead of the VM memory pool"
     default n
+
+if !MRUBYC_ALLOC_LIBC
+
+config MRUBYC_ALLOC_FLI_BIT_WIDTH
+    int "Pool allocator first-level index bits"
+    range 1 14
+    default 9
+    help
+        Sets the number of first-level size classes. The allocator
+        needs a spare bit in its 16-bit first-level bitmap.
+
+config MRUBYC_ALLOC_SLI_BIT_WIDTH
+    int "Pool allocator second-level index bits"
+    range 1 3
+    default 3
+    help
+        Sets the subdivision of each first-level size class. The
+        second-level bitmap has eight bits.
+
+config MRUBYC_ALLOC_IGNORE_LSBS
+    int "Pool allocator low bits ignored when indexing sizes"
+    range 2 14
+    default 4
+
+config MRUBYC_MIN_MEMORY_BLOCK_SIZE
+    int "Pool allocator minimum block size in bytes"
+    range 16 16777212
+    default 16
+    help
+        Must be a multiple of four and at least 2 raised to the
+        configured number of ignored bits.
+
+endif # !MRUBYC_ALLOC_LIBC
 
 config MRUBYC_NO_TIMER
     bool "Emulate scheduler ticks instead of using GPTimer"
@@ -170,10 +229,59 @@ config MRUBYC_DISABLE_LEGACY_VALUE_MACROS
     bool "Hide deprecated C value macros"
     default n
 
-menu "Unavailable modes and fixed settings in this component"
-    comment "Float cannot be disabled in release3.4.1; String stays enabled"
-    comment "16-bit integers, NaN boxing, VM ID tracking and 16-bit pools are not offered"
-    comment "24-bit pool headers, little-endian byte order and 64-bit alignment rules are fixed"
+menu "Read-only settings in mruby/c 3.4.1"
+
+config MRUBYC_FLOAT_NONE
+    bool
+    default n
+
+config MRUBYC_USE_STRING
+    bool
+    default y
+
+config MRUBYC_INT16
+    bool
+    default n
+
+config MRUBYC_ALLOC_VMID
+    bool
+    default n
+
+config MRUBYC_ALLOC_16BIT
+    bool
+    default n
+
+config MRUBYC_ALLOC_24BIT
+    bool
+    default y
+
+config MRUBYC_BIG_ENDIAN
+    bool
+    default n
+
+config MRUBYC_LITTLE_ENDIAN
+    bool
+    default y
+
+config MRUBYC_REQUIRE_32BIT_ALIGNMENT
+    bool
+    default n
+
+config MRUBYC_REQUIRE_64BIT_ALIGNMENT
+    bool
+    default y
+
+comment "Disable Float (MRBC_USE_FLOAT=0): unavailable"
+comment "String support (MRBC_USE_STRING): enabled"
+comment "16-bit integers (MRBC_INT16): disabled"
+comment "Pool VM ID tracking (MRBC_ALLOC_VMID): disabled"
+comment "16-bit pool format (MRBC_ALLOC_16BIT): disabled"
+comment "24-bit pool format (MRBC_ALLOC_24BIT): enabled"
+comment "Big-endian byte order (MRBC_BIG_ENDIAN): disabled"
+comment "Little-endian byte order (MRBC_LITTLE_ENDIAN): enabled"
+comment "32-bit alignment requirement (MRBC_REQUIRE_32BIT_ALIGNMENT): disabled"
+comment "64-bit alignment requirement (MRBC_REQUIRE_64BIT_ALIGNMENT): enabled"
+
 endmenu
 
 endmenu

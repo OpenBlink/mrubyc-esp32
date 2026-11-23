@@ -4,7 +4,7 @@ from pathlib import PurePosixPath
 
 REQUIRED = {
     "README.md", "LICENSE", "CMakeLists.txt", "Kconfig", "idf_component.yml", "gptimer_compat.c",
-    "fatal_hooks.c", "fatal_hooks.h",
+    "allocator_config.c", "fatal_hooks.c", "fatal_hooks.h",
     "vendor/mrubyc/LICENSE", "vendor/mrubyc/LICENSE.unicode",
     "vendor/mrubyc/src/VERSION", "vendor/mrubyc/src/mrblib.c",
     "vendor/mrubyc/hal/esp32/hal.c", "vendor/mrubyc/hal/esp32/hal.h",
