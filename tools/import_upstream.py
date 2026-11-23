@@ -1,6 +1,6 @@
+import argparse
 import hashlib
-import json
-import os
+import filecmp
 import re
 import shutil
 import subprocess
@@ -9,19 +9,12 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 ROOT = Path(__file__).resolve().parents[1]
-UPSTREAM = "mrubyc/mrubyc"
-VERSION = re.compile(r"release(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)")
-
-
-def gh(*args):
-    return subprocess.check_output(["gh", *args])
-
-
-def version_key(tag):
-    match = VERSION.fullmatch(tag)
-    if not match:
-        raise ValueError(f"Unexpected release tag: {tag!r}")
-    return tuple(map(int, match.groups()))
+RELEASE = "release3.4.1"
+SHA256 = "6e039f3e4ad046c588fbb635cfbe6627ebff8f26cd39ffb32574ca6ef5b6ac46"
+ASSET = f"mrubyc-{RELEASE}.tar.gz"
+URL = f"https://github.com/mrubyc/mrubyc/releases/download/{RELEASE}/{ASSET}"
+SRC_METADATA = {"Makefile", "UnicodeData.txt", "VERSION", "hal_selector.mk"}
+MANIFEST_VERSION = re.compile(r'^version: "([0-9]+\.[0-9]+\.[0-9]+)(?:~[0-9]+)?"$', re.M)
 
 
 def vendored_version(directory):
@@ -37,63 +30,105 @@ def bytecode_compatibility(directory):
     return compiler.group(1), rite.group(1)
 
 
-def import_latest(release, root):
-    tag = release["tag_name"]
-    current = root / "vendor/mrubyc"
-    if version_key(tag) <= version_key(f"release{vendored_version(current)}"):
-        return None
+def snapshot(directory):
+    entries = {}
+    for path in directory.rglob("*"):
+        relative = path.relative_to(directory)
+        if path.is_symlink() or not (path.is_dir() or path.is_file()):
+            raise ValueError(f"Unexpected entry type: {relative}")
+        entries[relative] = None if path.is_dir() else path
+    return entries
 
-    version = tag.removeprefix("release")
-    name = f"mrubyc-{tag}.tar.gz"
-    (asset,) = [asset for asset in release["assets"] if asset["name"] == name]
-    digest = asset.get("digest") or ""
-    if not re.fullmatch(r"sha256:[a-f0-9]{64}", digest):
-        raise ValueError("Missing official SHA-256 digest")
 
-    with TemporaryDirectory(dir=root) as temporary:
-        staging = Path(temporary)
-        archive = staging / name
+def compare_vendor(expected, current):
+    if current.is_symlink() or not current.is_dir():
+        raise ValueError("Missing or invalid vendor/mrubyc directory")
+    expected_entries = snapshot(expected)
+    current_entries = snapshot(current)
+    for path in sorted(expected_entries.keys() | current_entries.keys()):
+        if path not in current_entries:
+            raise ValueError(f"Missing vendored entry: {path}")
+        if path not in expected_entries:
+            raise ValueError(f"Unexpected vendored entry: {path}")
+        source, vendored = expected_entries[path], current_entries[path]
+        if (source is None) != (vendored is None) or (
+            source is not None and not filecmp.cmp(source, vendored, shallow=False)
+        ):
+            raise ValueError(f"Vendored entry differs from {RELEASE}: {path}")
+
+
+def stage_vendor(staging, archive):
+    if archive is None:
+        archive = staging / ASSET
         subprocess.run(
-            ["gh", "release", "download", tag, "--repo", UPSTREAM, "--pattern", name, "--output", str(archive)],
-            check=True,
+            ["curl", "--fail", "--silent", "--show-error", "--location", "--retry", "3",
+             URL, "--output", str(archive)], check=True,
         )
-        with archive.open("rb") as data:
-            if "sha256:" + hashlib.file_digest(data, "sha256").hexdigest() != digest:
-                raise ValueError("Release asset SHA-256 mismatch")
-        with tarfile.open(archive) as contents:
-            contents.extractall(staging, filter="data")
-        source = staging / f"mrubyc-{tag}"
-        if vendored_version(source) != version:
-            raise ValueError("Release asset VERSION does not match its tag")
+    with archive.open("rb") as data:
+        if hashlib.file_digest(data, "sha256").hexdigest() != SHA256:
+            raise ValueError("Release asset SHA-256 mismatch")
+    with tarfile.open(archive) as contents:
+        contents.extractall(staging, filter="data")
+    source = staging / f"mrubyc-{RELEASE}"
+    if vendored_version(source) != RELEASE.removeprefix("release"):
+        raise ValueError("Release asset VERSION does not match its tag")
+    unexpected = sorted(
+        path.name for path in (source / "src").iterdir()
+        if not path.is_file() or path.is_symlink()
+        or (path.suffix not in {".c", ".h"} and path.name not in SRC_METADATA)
+    )
+    if unexpected:
+        raise ValueError(f"Unexpected upstream src entries; review before importing: {', '.join(unexpected)}")
+
+    snapshot(source / "hal/esp32")
+    replacement = staging / "vendor"
+    shutil.copytree(source / "src", replacement / "src")
+    shutil.copytree(source / "hal/esp32", replacement / "hal/esp32")
+    for license_name in ("LICENSE", "LICENSE.unicode"):
+        shutil.copyfile(source / license_name, replacement / license_name)
+    return replacement
+
+
+def run(mode, archive, root):
+    current = root / "vendor/mrubyc"
+    manifest = root / "idf_component.yml"
+    manifest_text = manifest.read_text()
+    versions = MANIFEST_VERSION.findall(manifest_text)
+    if len(versions) != 1:
+        raise ValueError("Expected one manifest version")
+    version = RELEASE.removeprefix("release")
+    with TemporaryDirectory(dir=current.parent if mode == "import" else None) as temporary:
+        staging = Path(temporary)
+        replacement = stage_vendor(staging, archive)
+        if mode == "check":
+            compare_vendor(replacement, current)
+            if versions[0] != version:
+                raise ValueError(f"idf_component.yml version {versions[0]} does not match {RELEASE}")
+            print(f"Verified vendor/mrubyc and idf_component.yml against {RELEASE}")
+            return
 
         previous_compiler, previous_rite = bytecode_compatibility(current)
-        compiler, rite = bytecode_compatibility(source)
+        compiler, rite = bytecode_compatibility(replacement)
         if (compiler, rite) != (previous_compiler, previous_rite):
             raise ValueError(
                 f"Example bytecode must be regenerated: mruby {previous_compiler} (RITE{previous_rite}) "
                 f"changes to mruby {compiler} (RITE{rite}). "
-                f"Import {tag} manually and run bash tools/generate_bytecode.sh with mruby {compiler}'s mrbc."
+                f"Import {RELEASE} manually and run bash tools/generate_bytecode.sh with mruby {compiler}'s mrbc."
             )
 
-        replacement = staging / "vendor"
-        shutil.copytree(source / "src", replacement / "src")
-        shutil.copytree(source / "hal/esp32", replacement / "hal/esp32")
-        for license_name in ("LICENSE", "LICENSE.unicode"):
-            shutil.copyfile(source / license_name, replacement / license_name)
-
-        manifest = root / "idf_component.yml"
-        updated, count = re.subn(r'^version: "[^"]+"$', f'version: "{version}"', manifest.read_text(), flags=re.M)
-        if count != 1:
-            raise ValueError("Expected one manifest version")
         shutil.rmtree(current)
         replacement.rename(current)
-        manifest.write_text(updated)
-    return version
+        if versions[0] != version:
+            manifest.write_text(MANIFEST_VERSION.sub(f'version: "{version}"', manifest_text))
+    print(f"Imported {RELEASE}; review the diff before committing")
 
 
 if __name__ == "__main__":
-    release = json.loads(gh("api", f"repos/{UPSTREAM}/releases/latest"))
-    version = import_latest(release, ROOT)
-    if version:
-        with open(os.environ["GITHUB_OUTPUT"], "a") as output:
-            output.write(f"version={version}\n")
+    parser = argparse.ArgumentParser(description="Check or import the pinned mruby/c release asset.")
+    parser.add_argument("mode", choices=("check", "import"))
+    parser.add_argument("--archive", type=Path, help="use a local copy of the release asset")
+    args = parser.parse_args()
+    try:
+        run(args.mode, args.archive, ROOT)
+    except (OSError, ValueError, subprocess.CalledProcessError, tarfile.TarError) as error:
+        parser.exit(1, f"error: {error}\n")
