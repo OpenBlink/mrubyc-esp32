@@ -13,7 +13,7 @@ concurrency:
 
 jobs:
   package:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     outputs:
       artifact-id: ${{ steps.upload.outputs.artifact-id }}
       archive-sha256: ${{ steps.pack.outputs.archive-sha256 }}
@@ -24,7 +24,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
-          python-version: "3.14"
+          python-version: "3.15"
       - name: Package and inspect the component
         id: pack
         run: |
@@ -54,7 +54,7 @@ jobs:
           if-no-files-found: error
 
   staging:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     needs: package
     environment: staging
     permissions:
@@ -66,7 +66,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
-          python-version: "3.14"
+          python-version: "3.15"
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           artifact-ids: ${{ needs.package.outputs.artifact-id }}
@@ -82,7 +82,7 @@ jobs:
           python tools/upload_package.py --staging "${archive[@]}"
 
   staging-smoke:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     needs: [package, staging]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -98,7 +98,7 @@ jobs:
             "$IMAGE" bash tools/smoke_registry.sh "$VERSION"
 
   production:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     needs: [package, staging-smoke]
     environment: production
     permissions:
@@ -111,7 +111,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
-          python-version: "3.14"
+          python-version: "3.15"
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           artifact-ids: ${{ needs.package.outputs.artifact-id }}
@@ -132,7 +132,7 @@ jobs:
           python tools/upload_package.py dist/*.tgz
 
   release:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     needs: [package, production]
     permissions:
       contents: write
