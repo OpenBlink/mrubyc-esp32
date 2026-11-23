@@ -132,18 +132,18 @@
       ]
     },
     {
-      "title": "How does upstream import automation work?",
-      "purpose": "How bump-mrubyc.yml and tools/import_upstream.py watch mruby/c releases, verify official assets, update vendor/mrubyc, and open a pull request — and when they stop for manual handling.",
+      "title": "How do maintainers update bundled mruby/c?",
+      "purpose": "How maintainers pin an official release, update vendor/mrubyc, and verify the resulting tree in CI.",
       "parent": "How does a release reach the ESP Component Registry?",
       "page_notes": [
         {
-          "content": "tools/import_upstream.py fetches GitHub's releases/latest result for mrubyc/mrubyc, compares its releaseX.Y.Z tag against the vendored version, downloads the official tarball, and requires the release asset's sha256 digest before importing. It never scans older releases."
+          "content": "Maintainers update the release tag and SHA-256 pin in tools/import_upstream.py, which verifies the official release tarball before importing it."
         },
         {
-          "content": "Before touching vendor/, it reads src/VERSION and load.c in the new tree; if MRUBY_VERSION or RITE_VERSION cannot be verified (a compiler or bytecode-format change), it raises and the workflow stops. The README says to import such releases manually and regenerate example bytecode with the matching mrbc."
+          "content": "Before touching vendor/, the import command compares MRUBY_VERSION and RITE_VERSION with the current tree. If they change or cannot be determined, follow the README's manual procedure and regenerate example bytecode with the matching mrbc."
         },
         {
-          "content": "The workflow opens a pull request instead of committing to main and requires the repository setting that allows GitHub Actions to create pull requests. Import PRs need human review for API and configuration changes."
+          "content": "Maintainers open and review the PR. The build workflow compares the vendored sources, ESP32 HAL, licenses, and component version with the pinned release."
         }
       ]
     },
