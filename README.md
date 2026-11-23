@@ -107,7 +107,7 @@ Run `idf.py menuconfig` and open **Component config → mruby/c**. Defaults matc
 | `KV_SIZE_INCREMENT` | 5 entries (1–64) |
 | `NO_STDIO` | Off; enabling it removes Ruby's `p`, `print`, `puts` and `printf`, not `sprintf` or runtime diagnostics |
 | `DEBUG_REGS` | Off; enabling it logs register usage at VM teardown, not peak usage |
-| `DISABLE_LEGACY_VALUE_MACROS` | Off; enabling it hides legacy C value macros such as `GET_INT_ARG` |
+| `DISABLE_LEGACY_VALUE_MACROS` | Off unless NaN boxing is enabled; hides legacy C value macros such as `GET_INT_ARG` |
 
 The floating-point choice offers single and double precision. Upstream mruby/c `release3.4.1` does not compile with `MRBC_USE_FLOAT=0` because some code still accesses floating-point fields. This release leaves the upstream source unmodified and does not offer that mode. We will re-check it for v4.0.0.
 
@@ -115,7 +115,9 @@ The **Read-only settings in mruby/c 3.4.1** menu lists the fixed values individu
 
 Even with 32-bit String lengths, limit exception messages to 65,535 **bytes**. In mruby/c 3.4.1, longer messages passed to `Exception.new` or the C exception constructors can have their stored length truncated. If that length wraps to zero, the exception does not free the message buffer.
 
-Allocator tuning affects the pool's overhead and allocation granularity, not the size of the buffer passed to `mrbc_init`. Set the minimum block size to a multiple of four bytes and at least `2^ALLOC_IGNORE_LSBS`. Changing the String length width or enabling NaN boxing changes the public C representation, so rebuild the component and all its consumers together.
+Allocator tuning affects the pool's overhead and allocation granularity, not the size of the buffer passed to `mrbc_init`. Set the minimum block size to a multiple of four bytes and at least `2^ALLOC_IGNORE_LSBS`.
+
+Changing the String length width or enabling NaN boxing changes the public C representation, so rebuild the component and all its consumers together. Before enabling NaN boxing, update native bindings that use legacy value macros: `GET_TT_ARG` and the legacy numeric helpers read bits of a Float payload as a type tag. NaN boxing automatically hides these macros. Use `mrbc_type` to check the value type, then use `mrbc_integer` or `mrbc_float` to read it.
 
 The nominal Ruby time slice is the tick period multiplied by the timeslice count. The FreeRTOS tick period must not exceed the selected mruby/c tick period; the 1, 2, and 4 ms options require a faster FreeRTOS tick. With hardware timing disabled, the scheduler uses software ticks, not a hardware timebase.
 

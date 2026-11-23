@@ -70,6 +70,9 @@ _Static_assert(MRBC_TIMESLICE_TICK_COUNT == CONFIG_MRUBYC_TIMESLICE_TICK_COUNT, 
 #if defined(CONFIG_MRUBYC_NAN_BOXING) != defined(MRBC_NAN_BOXING)
 #error "NaN boxing mode mismatch"
 #endif
+#if defined(CONFIG_MRUBYC_NAN_BOXING) && !defined(CONFIG_MRUBYC_DISABLE_LEGACY_VALUE_MACROS)
+#error "NaN boxing must disable legacy value macros"
+#endif
 #if defined(CONFIG_MRUBYC_SUPPORT_OP_EXT) != defined(MRBC_SUPPORT_OP_EXT)
 #error "Extended opcode mode mismatch"
 #endif

@@ -73,10 +73,12 @@ config MRUBYC_INT64
 config MRUBYC_NAN_BOXING
     bool "NaN-boxed Ruby values"
     depends on !MRUBYC_INT64
+    select MRUBYC_DISABLE_LEGACY_VALUE_MACROS
     default n
     help
         Changes the C representation of Ruby values. This mode uses
         32-bit integers and stores floating-point values as doubles.
+        Hides legacy C value macros that are incompatible with NaN boxing.
 
 config MRUBYC_SUPPORT_OP_EXT
     bool "Extended bytecode operands"
