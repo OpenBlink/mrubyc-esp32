@@ -35,6 +35,28 @@ config MRUBYC_USE_MATH
     bool "Math module"
     default n
 
+choice MRUBYC_STRING_SIZE_T
+    prompt "String length field width"
+    default MRUBYC_STRING_SIZE_16
+    help
+        This changes the type of the length field in the public C API.
+
+    config MRUBYC_STRING_SIZE_16
+        bool "16 bits (uint16_t)"
+
+    config MRUBYC_STRING_SIZE_32
+        bool "32 bits (uint32_t)"
+        help
+            Exception messages still have a 16-bit length in mruby/c
+            3.4.1. Limit them to 65535 bytes to avoid truncation and
+            possible memory leaks.
+endchoice
+
+config MRUBYC_STRING_SIZE_BITS
+    int
+    default 32 if MRUBYC_STRING_SIZE_32
+    default 16
+
 config MRUBYC_USE_STRING_UTF8
     bool "UTF-8 string indexing"
     default n
@@ -48,6 +70,16 @@ config MRUBYC_INT64
     bool "64-bit integers"
     default n
 
+config MRUBYC_NAN_BOXING
+    bool "NaN-boxed Ruby values"
+    depends on !MRUBYC_INT64
+    select MRUBYC_DISABLE_LEGACY_VALUE_MACROS
+    default n
+    help
+        Changes the C representation of Ruby values. This mode uses
+        32-bit integers and stores floating-point values as doubles.
+        Hides legacy C value macros that are incompatible with NaN boxing.
+
 config MRUBYC_SUPPORT_OP_EXT
     bool "Extended bytecode operands"
     default y
@@ -55,6 +87,39 @@ config MRUBYC_SUPPORT_OP_EXT
 config MRUBYC_ALLOC_LIBC
     bool "Use libc allocation instead of the VM memory pool"
     default n
+
+if !MRUBYC_ALLOC_LIBC
+
+config MRUBYC_ALLOC_FLI_BIT_WIDTH
+    int "Pool allocator first-level index bits"
+    range 1 14
+    default 9
+    help
+        Sets the number of first-level size classes. The allocator
+        needs a spare bit in its 16-bit first-level bitmap.
+
+config MRUBYC_ALLOC_SLI_BIT_WIDTH
+    int "Pool allocator second-level index bits"
+    range 1 3
+    default 3
+    help
+        Sets the subdivision of each first-level size class. The
+        second-level bitmap has eight bits.
+
+config MRUBYC_ALLOC_IGNORE_LSBS
+    int "Pool allocator low bits ignored when indexing sizes"
+    range 2 14
+    default 4
+
+config MRUBYC_MIN_MEMORY_BLOCK_SIZE
+    int "Pool allocator minimum block size in bytes"
+    range 16 16777212
+    default 16
+    help
+        Must be a multiple of four and at least 2 raised to the
+        configured number of ignored bits.
+
+endif # !MRUBYC_ALLOC_LIBC
 
 config MRUBYC_NO_TIMER
     bool "Emulate scheduler ticks instead of using GPTimer"
@@ -114,5 +179,115 @@ config MRUBYC_DEBUG
 config MRUBYC_CONVERT_CRLF
     bool "Convert LF to CRLF in VM console output"
     default n
+
+config MRUBYC_ALLOC_PROFILING
+    bool "Pool allocation profiling"
+    depends on !MRUBYC_ALLOC_LIBC
+    default n
+
+config MRUBYC_OOM_POOL_STATS
+    bool "Print pool statistics on allocation failure"
+    depends on !MRUBYC_ALLOC_LIBC
+    default n
+
+config MRUBYC_PANIC_ON_UNHANDLED_EXCEPTION
+    bool "Abort on an unhandled exception at VM teardown"
+    default n
+    help
+        This does not affect rescued exceptions or permanent tasks that
+        skip VM teardown. The ESP-IDF panic settings control what follows.
+
+config MRUBYC_SYMBOL_SEARCH_LINEAR
+    bool "Search dynamic symbols linearly instead of using a tree"
+    default n
+
+config MRUBYC_EXCEPTION_CALL_NEST_LEVEL
+    int "Maximum exception backtrace depth"
+    range 1 64
+    default 8
+
+config MRUBYC_TASK_NAME_LEN
+    int "Maximum task name length in bytes"
+    range 1 255
+    default 15
+
+config MRUBYC_KV_SIZE_INIT
+    int "Initial key-value table capacity"
+    range 1 64
+    default 2
+
+config MRUBYC_KV_SIZE_INCREMENT
+    int "Key-value table capacity increment"
+    range 1 64
+    default 5
+
+config MRUBYC_NO_STDIO
+    bool "Omit Ruby's p, print, puts and printf"
+    default n
+    help
+        Keeps sprintf and runtime diagnostics available.
+
+config MRUBYC_DEBUG_REGS
+    bool "Log register usage at VM teardown"
+    default n
+
+config MRUBYC_DISABLE_LEGACY_VALUE_MACROS
+    bool "Hide deprecated C value macros"
+    default n
+
+menu "Read-only settings in mruby/c 3.4.1"
+
+config MRUBYC_FLOAT_NONE
+    bool
+    default n
+
+config MRUBYC_USE_STRING
+    bool
+    default y
+
+config MRUBYC_INT16
+    bool
+    default n
+
+config MRUBYC_ALLOC_VMID
+    bool
+    default n
+
+config MRUBYC_ALLOC_16BIT
+    bool
+    default n
+
+config MRUBYC_ALLOC_24BIT
+    bool
+    default y
+
+config MRUBYC_BIG_ENDIAN
+    bool
+    default n
+
+config MRUBYC_LITTLE_ENDIAN
+    bool
+    default y
+
+config MRUBYC_REQUIRE_32BIT_ALIGNMENT
+    bool
+    default n
+
+config MRUBYC_REQUIRE_64BIT_ALIGNMENT
+    bool
+    default y
+
+comment "Disable Float (MRBC_USE_FLOAT=0): unavailable"
+comment "String support (MRBC_USE_STRING): enabled"
+comment "16-bit integers (MRBC_INT16): disabled"
+comment "Pool VM ID tracking (MRBC_ALLOC_VMID): disabled"
+comment "16-bit pool format (MRBC_ALLOC_16BIT): disabled"
+comment "24-bit pool format (MRBC_ALLOC_24BIT): enabled"
+comment "Big-endian byte order (MRBC_BIG_ENDIAN): disabled"
+comment "Little-endian byte order (MRBC_LITTLE_ENDIAN): enabled"
+comment "32-bit alignment requirement (MRBC_REQUIRE_32BIT_ALIGNMENT): disabled"
+comment "64-bit alignment requirement (MRBC_REQUIRE_64BIT_ALIGNMENT): enabled"
+
+endmenu
 
 endmenu

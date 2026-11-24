@@ -1,0 +1,8 @@
+config MRUBYC_TEST_PARITY
+    bool "Run runtime parity checks"
+
+config MRUBYC_TEST_OOM
+    bool "Trigger pool exhaustion"
+
+config MRUBYC_TEST_EXCEPTION
+    bool "Trigger an unhandled exception"

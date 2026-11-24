@@ -12,6 +12,7 @@ dependencies:
   idf: ">=5.5"
 files:
   exclude:
+    - ".devin/**/*"
     - ".github/**/*"
     - "tools/**/*"
     - "test_app/**/*"
