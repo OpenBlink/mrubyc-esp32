@@ -186,6 +186,11 @@ Prefix the manifest version with `v` and replace a revision separator (`~`) with
 
 The tag-triggered workflow packages the tagged commit once, publishes that archive to staging, and builds `hello` against the exact staged version. Production approval is requested only after that build succeeds. Production rechecks the approval policy and verifies the same archive's SHA-256 before attesting and publishing it. A separate job automatically publishes the GitHub Release after the production Registry upload succeeds. The workflow stops rather than changing an existing Release for that tag. Registry versions are immutable: use **Re-run failed jobs** to retry a consumer build or GitHub release without repeating a successful Registry upload. Use a new manifest revision and tag if the package itself needs to change.
 
+If an interrupted GitHub Release job left a draft, verify that it is
+unpublished, belongs to the same tag, and does not contain the expected
+component archive. Delete only that draft, keeping the Git tag, then use
+**Re-run failed jobs** to avoid repeating a successful Registry upload.
+
 ### Updating bundled mruby/c
 
 Update upstream manually in a pull request:
