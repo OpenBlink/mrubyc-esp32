@@ -180,11 +180,18 @@ Use English for issues, pull requests, and code comments. For integration report
 
 CI builds local sources with default and alternate VM options. The component demotes two diagnostics from errors to warnings only for the vendored target: the intentional byte-array debug marker initializer (when supported by the compiler) and an intentional bytecode-loader fallthrough. Neither requires changing the VM defaults.
 
-Merge the release changes into `main` before tagging, then run `git fetch origin`. Tag `origin/main` if it still points to the resulting release commit. If `main` has advanced, tag the release commit by SHA. Do not tag the PR branch tip after a squash merge.
+Merge the release changes into `main` and wait for CI to pass, then run `git fetch origin`. Push an unsigned tag for `origin/main` if it still points to the resulting release commit. If `main` has advanced, tag the release commit by SHA. Do not tag the PR branch tip after a squash merge.
 
-Prefix the manifest version with `v` and replace a revision separator (`~`) with a dot in the Git tag: `3.4.1` uses `v3.4.1`, and `3.4.1~1` uses `v3.4.1.1`. Keep the Registry version unchanged in the manifest. Configure required reviewers and release tag restrictions on the GitHub `production` environment. Before the first release, configure Registry Trusted Uploaders for `OpenBlink/mrubyc-esp32` and `upload.yml` on the staging and production registries, and allow release tags through the separate GitHub `staging` environment.
+Prefix the manifest version with `v` and replace a revision separator (`~`) with a dot in the Git tag: `3.4.1` uses `v3.4.1`, and `3.4.1~1` uses `v3.4.1.1`. Keep the Registry version unchanged in the manifest. The GitHub `production` environment must have required reviewers, administrator bypass disabled, and only the `v*` deployment tag policy. Before the first release, configure Registry Trusted Uploaders for `OpenBlink/mrubyc-esp32` and `upload.yml` on the staging and production registries, and allow release tags through the separate GitHub `staging` environment.
 
-The tag-triggered workflow packages the tagged commit once, publishes that archive to staging, and builds `hello` against the exact staged version. Production approval is requested only after that build succeeds. Production verifies the same archive's SHA-256 before attesting and publishing it. The GitHub release is published by a separate job after the production Registry upload succeeds. Registry versions are immutable: use **Re-run failed jobs** to retry a consumer build or GitHub release without repeating a successful Registry upload. Use a new manifest revision and tag if the package itself needs to change.
+The tag-triggered workflow packages the tagged commit once, publishes that archive to staging, and builds `hello` against the exact staged version. Production approval is requested only after that build succeeds. Production rechecks the approval policy and verifies the same archive's SHA-256 before attesting and publishing it. A separate job automatically publishes the GitHub Release after the production Registry upload succeeds. The workflow stops rather than changing an existing Release for that tag. Registry versions are immutable: use **Re-run failed jobs** to retry a consumer build or GitHub release without repeating a successful Registry upload. Use a new manifest revision and tag if the package itself needs to change.
+
+If the GitHub Release for the tag is still a draft, delete the draft even if
+it already contains some assets. Keep the Git tag and use **Re-run failed jobs**
+to avoid repeating a successful Registry upload.
+If the Release is already published, do not modify it or rerun the failed
+publication job. Verify the release assets and any published checksums. If
+the Release is broken, publish a new patch version.
 
 ### Updating bundled mruby/c
 
