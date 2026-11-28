@@ -39,7 +39,9 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - run: shellcheck tools/*.sh
+      - run: shellcheck tools/*.sh .github/scripts/*release*.sh
+      - name: Test release policy
+        run: bash .github/scripts/test_release_policy.sh
   zizmor:
     runs-on: ubuntu-slim
     steps:
