@@ -2,6 +2,7 @@
 set -euo pipefail
 
 validator=$(realpath "$(dirname "$0")/validate_release.sh")
+upload_workflow=$(realpath "$(dirname "$0")/../workflows/upload.yml")
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
 cd "$tmp"
@@ -77,5 +78,11 @@ RELEASES='[[],[{"tag_name":"v1.2.3","draft":false}]]' \
   reject 'no existing Release' bash "$validator" --publish-check
 RELEASES='[[{"tag_name":"v1.2.3","draft":true}]]' \
   reject 'no existing Release' bash "$validator" --publish-check
+RELEASES='[[],[{"tag_name":"v1.2.3","draft":true}]]' \
+  reject 'no existing Release' bash "$validator" --publish-check
+if ! sed -n '/^  production:$/,/^  release:$/p' "$upload_workflow" | grep -E '^      contents: write( |$)' >/dev/null; then
+  printf 'The pre-Registry Release check needs contents: write to see drafts.\n' >&2
+  exit 1
+fi
 RELEASES='[{"unexpected":[]}]' reject 'no existing Release' bash "$validator" --publish-check
 printf 'Release policy tests passed.\n'

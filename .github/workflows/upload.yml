@@ -132,7 +132,7 @@ jobs:
     environment: production
     permissions:
       actions: read
-      contents: read
+      contents: write # The Releases API only returns drafts to callers with push access.
       id-token: write
       attestations: write
     steps:
